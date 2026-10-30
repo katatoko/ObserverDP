@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/1.- Frontend/" />
+  <Folder Name="/1.- Frontend/1.1.- WebApp/">
+    <Project Path="ObserverDP.csproj" />
+  </Folder>
+  <Folder Name="/2.- Backend/" />
+  <Folder Name="/2.- Backend/2.1- Microservices/" />
+  <Folder Name="/2.- Backend/2.2- Logic/">
+    <Project Path="../Weather.Services/Weather.Services.csproj" />
+  </Folder>
+  <Folder Name="/2.- Backend/2.3- Infrastructure/">
+    <Project Path="../DTOs/DTOs.csproj" />
+    <Project Path="../Entities/Entities.csproj" />
+  </Folder>
+  <Folder Name="/2.- Backend/2.4- Domain/">
+    <Project Path="../Domain/Domain.csproj" />
+  </Folder>
+</Solution>
