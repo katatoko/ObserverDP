@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.11.12306.390
@@ -27,7 +27,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2.4- Domain", "2.4- Domain"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "2.- Backend\2.4- Domain\Domain\Domain.csproj", "{6F36C4E2-F110-64C8-6862-BBDC0584BE36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather.Api", "Weather.Api\Weather.Api.csproj", "{36309627-FC3E-4974-B20F-8B91DC9C4C2E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather.Api", "2.- Backend\2.1- Microservices\Weather.Api\Weather.Api.csproj", "{36309627-FC3E-4974-B20F-8B91DC9C4C2E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
