@@ -1,7 +1,526 @@
 ﻿@page "/"
+@using Domain
+@using Entities
+@using DTOs
+@using Weather.Services
 
-<PageTitle>Home</PageTitle>
+@* Inyectamos el Sujeto (Estación) y los 3 Observadores registrados en Program.cs *@
+@inject WeatherStationService Station
+@inject CurrentConditionsObserver ObsCondiciones
+@inject StatisticsObserver ObsEstadisticas
+@inject ForecastObserver ObsPronostico
 
-<h1>Hello, world!</h1>
+<PageTitle>Patrón Observer - Estación Meteorológica</PageTitle>
 
-Welcome to your new app.
+<div class="dashboard-container">
+    <header class="header-banner">
+        <div>
+            <h1>🌦️ Estación Meteorológica IoT — Patrón Observer (GoF)</h1>
+            <p>Demostración interactiva de bajo acoplamiento, suscripción dinámica (Attach/Detach) y enfoques <strong>PUSH vs. PULL</strong></p>
+        </div>
+        <div class="badge-counter">
+            Observadores Conectados: <strong>@Station.ObservadoresConectados / 3</strong>
+        </div>
+    </header>
+
+    @* ===================================================================== *@
+    @* PANEL DEL SUJETO (WeatherStationService)                              *@
+    @* ===================================================================== *@
+    <section class="subject-panel">
+        <div class="panel-header">
+            <h2>📡 SUJETO (Observable): <code>WeatherStationService</code></h2>
+            <span class="timestamp">Última emisión: @Station.LecturaActual.RecordedAt.ToString("HH:mm:ss")</span>
+        </div>
+
+        <div class="sliders-grid">
+            <div class="slider-box">
+                <label>🌡️ Temperatura: <strong>@tempInput.ToString("0.0") °C</strong></label>
+                <input type="range" min="-5" max="45" step="0.5" @bind="tempInput" @bind:event="oninput" />
+            </div>
+
+            <div class="slider-box">
+                <label>💧 Humedad: <strong>@humedadInput.ToString("0") %</strong></label>
+                <input type="range" min="10" max="100" step="1" @bind="humedadInput" @bind:event="oninput" />
+            </div>
+
+            <div class="slider-box">
+                <label>🧭 Presión Atmosférica: <strong>@presionInput.ToString("0") hPa</strong></label>
+                <input type="range" min="980" max="1040" step="1" @bind="presionInput" @bind:event="oninput" />
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <button class="btn-primary" @onclick="EnviarMediciones">
+                📢 Actualizar Estación y Notificar (Notify)
+            </button>
+            <button class="btn-secondary" @onclick="SimularClimaAleatorio">
+                🎲 Simular Clima Aleatorio
+            </button>
+        </div>
+    </section>
+
+    @* ===================================================================== *@
+    @* TARJETAS DE LOS 3 OBSERVADORES CONCRETOS                              *@
+    @* ===================================================================== *@
+    <section class="observers-grid">
+
+        @* OBSERVADOR 1: CONDICIONES ACTUALES (PUSH) *@
+        <div class="observer-card @(obs1Conectado ? "connected" : "disconnected")">
+            <div class="card-top">
+                <span class="tag-push">ENFOQUE PUSH</span>
+                <span class="status-pill @(obs1Conectado ? "on" : "off")">
+                    @(obs1Conectado ? "🟢 Suscrito" : "🔴 Desuscrito")
+                </span>
+            </div>
+            <h3>🌡️ 1. Condiciones Actuales</h3>
+            <p class="class-name"><code>CurrentConditionsObserver</code></p>
+            <p class="desc">Recibe el objeto <code>WeatherReading</code> completo por el parámetro de <code>Update(reading)</code>.</p>
+
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span>Temperatura:</span>
+                    <strong>@ObsCondiciones.UltimaLectura.TemperaturaCelsius °C</strong>
+                </div>
+                <div class="metric-item">
+                    <span>Humedad:</span>
+                    <strong>@ObsCondiciones.UltimaLectura.PorcentajeHumedad %</strong>
+                </div>
+                <div class="metric-item">
+                    <span>Presión:</span>
+                    <strong>@ObsCondiciones.UltimaLectura.PresionHpa hPa</strong>
+                </div>
+                <div class="metric-item">
+                    <span>Hora recibida:</span>
+                    <strong>@ObsCondiciones.UltimaLectura.RecordedAt.ToString("HH:mm:ss")</strong>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <span class="updates-count">Notificaciones recibidas: <strong>@ObsCondiciones.ActualizacionesRecibidas</strong></span>
+                <button class="btn-toggle @(obs1Conectado ? "btn-detach" : "btn-attach")" @onclick="ToggleObservador1">
+                    @(obs1Conectado ? "Desconectar (Detach)" : "Conectar (Attach)")
+                </button>
+            </div>
+        </div>
+
+        @* OBSERVADOR 2: ESTADÍSTICAS (PUSH + DTO) *@
+        <div class="observer-card @(obs2Conectado ? "connected" : "disconnected")">
+            <div class="card-top">
+                <span class="tag-push">ENFOQUE PUSH + DTO</span>
+                <span class="status-pill @(obs2Conectado ? "on" : "off")">
+                    @(obs2Conectado ? "🟢 Suscrito" : "🔴 Desuscrito")
+                </span>
+            </div>
+            <h3>📊 2. Estadísticas de Temperatura</h3>
+            <p class="class-name"><code>StatisticsObserver</code></p>
+            <p class="desc">Acumula el historial de temperaturas empujadas y calcula un <code>WeatherStatisticsDto</code>.</p>
+
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span>Promedio:</span>
+                    <strong>@ObsEstadisticas.Estadisticas.TemperaturaPromedio °C</strong>
+                </div>
+                <div class="metric-item">
+                    <span>Máxima registrada:</span>
+                    <strong class="text-danger">@ObsEstadisticas.Estadisticas.TemperaturaMaxima °C</strong>
+                </div>
+                <div class="metric-item">
+                    <span>Mínima registrada:</span>
+                    <strong class="text-info">@ObsEstadisticas.Estadisticas.TemperaturaMinima °C</strong>
+                </div>
+                <div class="metric-item">
+                    <span>Lecturas en historial:</span>
+                    <strong>@ObsEstadisticas.Estadisticas.LecturasTotales</strong>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <span class="updates-count">Total procesadas: <strong>@ObsEstadisticas.Estadisticas.LecturasTotales</strong></span>
+                <button class="btn-toggle @(obs2Conectado ? "btn-detach" : "btn-attach")" @onclick="ToggleObservador2">
+                    @(obs2Conectado ? "Desconectar (Detach)" : "Conectar (Attach)")
+                </button>
+            </div>
+        </div>
+
+        @* OBSERVADOR 3: PRONÓSTICO BAROMÉTRICO (PULL) *@
+        <div class="observer-card @(obs3Conectado ? "connected" : "disconnected")">
+            <div class="card-top">
+                <span class="tag-pull">ENFOQUE PULL</span>
+                <span class="status-pill @(obs3Conectado ? "on" : "off")">
+                    @(obs3Conectado ? "🟢 Suscrito" : "🔴 Desuscrito")
+                </span>
+            </div>
+            <h3>🧭 3. Pronóstico Barométrico</h3>
+            <p class="class-name"><code>ForecastObserver</code></p>
+            <p class="desc">Ignora el parámetro y consulta al sujeto (<code>station.LecturaActual.PresionHpa</code>) solo el dato que necesita.</p>
+
+            <div class="forecast-box">
+                @ObsPronostico.MensajePronostico
+            </div>
+
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span>Presión Previa:</span>
+                    <strong>@ObsPronostico.PresionPrevia hPa</strong>
+                </div>
+                <div class="metric-item">
+                    <span>Presión Actual (PULL):</span>
+                    <strong>@ObsPronostico.PresionActual hPa</strong>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <span class="updates-count">Notificaciones recibidas: <strong>@ObsPronostico.ActualizacionesRecibidas</strong></span>
+                <button class="btn-toggle @(obs3Conectado ? "btn-detach" : "btn-attach")" @onclick="ToggleObservador3">
+                    @(obs3Conectado ? "Desconectar (Detach)" : "Conectar (Attach)")
+                </button>
+            </div>
+        </div>
+
+    </section>
+</div>
+
+<style>
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        color: #1e293b;
+        background-color: #f8fafc;
+        min-height: 100vh;
+    }
+
+    .header-banner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+        color: white;
+        padding: 20px 28px;
+        border-radius: 14px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .header-banner h1 {
+        margin: 0 0 6px 0;
+        font-size: 1.5rem;
+    }
+
+    .header-banner p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+
+    .badge-counter {
+        background: rgba(255,255,255,0.15);
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-size: 1rem;
+        white-space: nowrap;
+    }
+
+    .subject-panel {
+        background: white;
+        border: 2px solid #cbd5e1;
+        border-radius: 14px;
+        padding: 22px;
+        margin-bottom: 28px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 12px;
+    }
+
+    .panel-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #0f172a;
+    }
+
+    .timestamp {
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    .sliders-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .slider-box {
+        background: #f1f5f9;
+        padding: 14px 18px;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .slider-box input[type="range"] {
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .actions-bar {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 12px 22px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background: #1d4ed8;
+    }
+
+    .btn-secondary {
+        background: #475569;
+        color: white;
+        border: none;
+        padding: 12px 22px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+        background: #334155;
+    }
+
+    .observers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+        gap: 22px;
+    }
+
+    .observer-card {
+        background: white;
+        border-radius: 14px;
+        padding: 20px;
+        border: 2px solid #22c55e;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.2s ease;
+    }
+
+    .observer-card.disconnected {
+        border-color: #ef4444;
+        opacity: 0.72;
+        background: #fef2f2;
+    }
+
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .tag-push {
+        background: #dbeafe;
+        color: #1e40af;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+
+    .tag-pull {
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+
+    .status-pill {
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .observer-card h3 {
+        margin: 4px 0;
+        font-size: 1.15rem;
+    }
+
+    .class-name {
+        margin: 0 0 6px 0;
+        font-size: 0.85rem;
+        color: #475569;
+    }
+
+    .desc {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 14px;
+    }
+
+    .metrics-list {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .metric-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        font-size: 0.92rem;
+    }
+
+    .metric-item:last-child {
+        border-bottom: none;
+    }
+
+    .forecast-box {
+        background: #eff6ff;
+        border-left: 4px solid #3b82f6;
+        padding: 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        margin-bottom: 14px;
+        font-size: 0.92rem;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .updates-count {
+        font-size: 0.85rem;
+        color: #475569;
+    }
+
+    .btn-toggle {
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .btn-detach {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .btn-detach:hover {
+        background: #fecaca;
+    }
+
+    .btn-attach {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .btn-attach:hover {
+        background: #bbf7d0;
+    }
+</style>
+
+@code {
+    // Valores actuales de los sliders en pantalla
+    private double tempInput = 24.0;
+    private double humedadInput = 60.0;
+    private double presionInput = 1013.0;
+
+    // Bandera visual para saber si cada observador está conectado o desconectado
+    private bool obs1Conectado = true;
+    private bool obs2Conectado = true;
+    private bool obs3Conectado = true;
+
+    // Se ejecuta automáticamente una vez al abrir la página
+    protected override void OnInitialized()
+    {
+        // Suscribimos inicialmente los 3 observadores al Sujeto (Estación)
+        Station.Attach(ObsCondiciones);
+        Station.Attach(ObsEstadisticas);
+        Station.Attach(ObsPronostico);
+
+        // Enviamos una primera lectura inicial si aún no han recibido ninguna
+        if (ObsCondiciones.ActualizacionesRecibidas == 0)
+        {
+            Station.SetMeasurements(tempInput, humedadInput, presionInput);
+        }
+    }
+
+    // Envía los valores de los sliders a la estación (dispara Notify() por dentro)
+    private void EnviarMediciones()
+    {
+        Station.SetMeasurements(tempInput, humedadInput, presionInput);
+    }
+
+    // Genera valores aleatorios para probar rápidamente en la exposición
+    private void SimularClimaAleatorio()
+    {
+        var random = new Random();
+        tempInput = Math.Round(15 + random.NextDouble() * 20, 1);
+        humedadInput = random.Next(30, 95);
+        presionInput = random.Next(990, 1030);
+
+        Station.SetMeasurements(tempInput, humedadInput, presionInput);
+    }
+
+    // Conecta (Attach) o Desconecta (Detach) el Observador 1 en tiempo de ejecución
+    private void ToggleObservador1()
+    {
+        if (obs1Conectado)
+            Station.Detach(ObsCondiciones);
+        else
+            Station.Attach(ObsCondiciones);
+
+        obs1Conectado = !obs1Conectado;
+    }
+
+    // Conecta (Attach) o Desconecta (Detach) el Observador 2 en tiempo de ejecución
+    private void ToggleObservador2()
+    {
+        if (obs2Conectado)
+            Station.Detach(ObsEstadisticas);
+        else
+            Station.Attach(ObsEstadisticas);
+
+        obs2Conectado = !obs2Conectado;
+    }
+
+    // Conecta (Attach) o Desconecta (Detach) el Observador 3 en tiempo de ejecución
+    private void ToggleObservador3()
+    {
+        if (obs3Conectado)
+            Station.Detach(ObsPronostico);
+        else
+            Station.Attach(ObsPronostico);
+
+        obs3Conectado = !obs3Conectado;
+    }
+}

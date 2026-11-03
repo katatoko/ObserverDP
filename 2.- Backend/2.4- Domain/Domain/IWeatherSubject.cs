@@ -5,10 +5,13 @@ using System.Text;
 
 namespace Domain
 {
+    // Interfaz del sujeto, es el contrato que la clase Sujeto debe cumplir
     public interface IWeatherSubject
     {
-        // Expone la lectura actual para soportar el enfoque pull, cuando el observador quiere consultar solo su dato correspondiente
-        WeatherReading CurrentReading { get; }
+        // Propiedad de solo lectura get que guarda el estado actual del clima en la estación.
+        // Está aquí en la interfaz para que los observadores con enfoque PULL (como ForecastObserver)
+        // puedan consultar directamente a la estación (station.LecturaActual) y sacar solo el dato que necesiten.
+        WeatherReading LecturaActual { get; }
 
         // Suscribe o conecta un nuevo observador a la estacion
         void Attach(IWeatherObserver observer);

@@ -12,4 +12,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.13" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\2.- Backend\2.2- Logic\Weather.Services\Weather.Services.csproj" />
+    <ProjectReference Include="..\..\..\2.- Backend\2.3- Infrastructure\DTOs\DTOs.csproj" />
+    <ProjectReference Include="..\..\..\2.- Backend\2.3- Infrastructure\Entities\Entities.csproj" />
+    <ProjectReference Include="..\..\..\2.- Backend\2.4- Domain\Domain\Domain.csproj" />
+  </ItemGroup>
+
 </Project>
